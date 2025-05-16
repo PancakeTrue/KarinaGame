@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Esquivar Objetos</title>
+    <title>Juego de Karina</title>
     <style>
         body {
             margin: 0;
@@ -46,7 +46,7 @@
 </head>
 
 <body>
-    <h1>Juego de Esquivar</h1>
+    <h1>Esquiva todo lo que puedas</h1>
     <canvas id="gameCanvas"></canvas>
     <div class="controls">
         <button id="leftButton">←-</button>
@@ -55,8 +55,8 @@
     <div class="score">Puntuación: <span id="score">0</span></div>
 
     <!-- Pre-carga de imágenes para asegurar que existan en la carpeta -->
-    <img id="dinoPreload" src="Stitch.png" alt="Dino" style="display:none;">
-    <img id="obstaclePreload" src="AppleCat.png" alt="Obstáculo" style="display:none;">
+    <img id="dinoPreload" src="Kpixel.png" alt="Dino" style="display:none;">
+    <img id="obstaclePreload" src="Coco.png" alt="Obstáculo" style="display:none;">
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -268,9 +268,11 @@
 
         function gameLoop() {
             if (gameOver) {
+                updateBestScore();
                 ctx.fillStyle = 'black';
-                ctx.font = '20px Arial';
-                ctx.fillText('¡Juego Terminado!', canvas.width / 2 - 80, canvas.height / 2);
+                ctx.font = '20px Algerian';
+                ctx.fillStyle = 'red';
+                ctx.fillText('Te cayó un COCAZO', canvas.width / 2 - 80, canvas.height / 2);
                 updateScoreTable(); // Update score table when game ends
                 restartButton.style.display = 'block'; // Show restart button
                 return;
@@ -311,12 +313,13 @@
                     <option value="medium" selected>Medio</option>
                     <option value="hard">Difícil</option>
                 </select>
-                <button id="startGame">Iniciar Juego</button>
+                <button id="startGame">Empezar</button>
             </div>
         `;
         document.body.insertBefore(levelSelect, canvas);
 
         document.getElementById('startGame').addEventListener('click', () => {
+            incrementPlayCount();
             const selectedLevel = document.getElementById('level').value;
             if (selectedLevel === 'easy') {
                 objectSpeed = 2;
@@ -373,7 +376,36 @@
             }
         `;
         document.head.appendChild(style);
+
+        // Recuperar datos de localStorage o inicializar
+        let bestScore = localStorage.getItem('bestScore') ? parseInt(localStorage.getItem('bestScore')) : 0;
+        let playCount = localStorage.getItem('playCount') ? parseInt(localStorage.getItem('playCount')) : 0;
+
+        // Mostrar en pantalla
+        document.querySelector('.score').insertAdjacentHTML('afterend', `
+            <div id="bestScoreDiv">Mejor puntuación: <span id="bestScore">${bestScore}</span></div>
+            <div id="playCountDiv">Veces jugadas: <span id="playCount">${playCount}</span></div>
+        `);
+
+        // Cada vez que inicia una partida, aumenta el contador
+        function incrementPlayCount() {
+            playCount++;
+            localStorage.setItem('playCount', playCount);
+            document.getElementById('playCount').textContent = playCount;
+        }
+
+        // Cuando termina el juego, guarda la mejor puntuación si es necesario
+        function updateBestScore() {
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('bestScore', bestScore);
+                document.getElementById('bestScore').textContent = bestScore;
+            }
+        }
+
+        // Llama a estas funciones en los lugares correctos:
     </script>
 </body>
 
 </html>
+
