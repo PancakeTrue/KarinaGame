@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego para Karina</title>
+    <title>Juego de Esquivar Objetos</title>
     <style>
         body {
             margin: 0;
@@ -87,6 +87,23 @@
         // Cargar imágenes desde la carpeta local
         const dinoImage = document.getElementById('dinoPreload');
         const obstacleImage = document.getElementById('obstaclePreload');
+
+        // Esperar a que ambas imágenes estén cargadas antes de permitir iniciar el juego
+        let imagesLoaded = 0;
+        function checkImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === 2) {
+                // Solo aquí se permite iniciar el juego
+                document.getElementById('startGame').disabled = false;
+            }
+        }
+        dinoImage.onload = checkImagesLoaded;
+        obstacleImage.onload = checkImagesLoaded;
+
+        // Al principio, deshabilita el botón de iniciar juego
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('startGame').disabled = true;
+        });
 
         let moveLeft = false;
         let moveRight = false;
