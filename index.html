@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juego de Karina</title>
+    <link rel="icon" type="image/png" href="Icono.png">
+    <img src="Logo.png" alt="Logo" style="height: 150px; vertical-align: middle;">
     <style>
         body {
             margin: 0;
@@ -22,7 +24,7 @@
 
         canvas {
             display: block;
-            background-color: white;
+            background-color: rgb(99, 16, 194); /* Cambia este color por el que prefieras */
             border: 5px solid black;
         }
 
@@ -46,7 +48,10 @@
 </head>
 
 <body>
-    <h1>Esquiva todo lo que puedas</h1>
+    <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+       
+        Esquiva todo lo que puedas
+    </h1>
     <canvas id="gameCanvas"></canvas>
     <div class="controls">
         <button id="leftButton">←-</button>
@@ -110,12 +115,14 @@
 
         document.getElementById('leftButton').addEventListener('mousedown', () => {
             moveLeft = true;
+            moveSound.play();
         });
         document.getElementById('leftButton').addEventListener('mouseup', () => {
             moveLeft = false;
         });
         document.getElementById('rightButton').addEventListener('mousedown', () => {
             moveRight = true;
+            moveSound.play();
         });
         document.getElementById('rightButton').addEventListener('mouseup', () => {
             moveRight = false;
@@ -123,12 +130,14 @@
 
         document.getElementById('leftButton').addEventListener('touchstart', () => {
             moveLeft = true;
+            moveSound.play();
         });
         document.getElementById('leftButton').addEventListener('touchend', () => {
             moveLeft = false;
         });
         document.getElementById('rightButton').addEventListener('touchstart', () => {
             moveRight = true;
+            moveSound.play();
         });
         document.getElementById('rightButton').addEventListener('touchend', () => {
             moveRight = false;
@@ -203,6 +212,10 @@
                 score += 5;
                 document.getElementById('score').textContent = score;
 
+                if (score === 50) {
+                    sound50.play();
+                }
+
                 if (score % 100 === 0) {
                     level++;
                     objectSpeed += 1;
@@ -266,9 +279,18 @@
             gameLoop();
         });
 
+        // Carga la imagen de fondo
+        const bgImage = new Image();
+        bgImage.src = 'Fondo.png'; // Cambia por el nombre de tu imagen
+
+        function drawBackground() {
+            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+        }
+
         function gameLoop() {
             if (gameOver) {
                 updateBestScore();
+                loseSound.play(); // <-- Reproduce el sonido al perder
                 ctx.fillStyle = 'black';
                 ctx.font = '20px Algerian';
                 ctx.fillStyle = 'red';
@@ -279,6 +301,8 @@
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground(); // <-- Dibuja el fondo aquí
 
             updateDinoPosition();
             drawDino();
@@ -403,9 +427,15 @@
             }
         }
 
+        const sound50 = new Audio('puntos50.mp3');
+const moveSound = new Audio('move.mp3');
+const loseSound = new Audio('lose.mp3'); // Agrega tu sonido de perder aquí
+
+
         // Llama a estas funciones en los lugares correctos:
     </script>
 </body>
 
 </html>
+
 
