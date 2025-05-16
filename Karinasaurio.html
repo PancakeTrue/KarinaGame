@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Esquivar Objetos</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #140101;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            background-color: white;
+            border: 5px solid black;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .score {
+            margin-top: 10px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Juego de Esquivar</h1>
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls">
+        <button id="leftButton">←-</button>
+        <button id="rightButton">-→</button>
+    </div>
+    <div class="score">Puntuación: <span id="score">0</span></div>
+
+    <!-- Pre-carga de imágenes para asegurar que existan en la carpeta -->
+    <img id="dinoPreload" src="stitch.png" alt="Dino" style="display:none;">
+    <img id="obstaclePreload" src="AppleCat.png" alt="Obstáculo" style="display:none;">
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Ajustar tamaño del canvas para pantallas móviles
+        canvas.width = Math.min(window.innerWidth * 0.8, 300);
+        canvas.height = Math.min(window.innerHeight * 0.6, 400);
+
+        document.querySelector('.controls').style.fontSize = '14px';
+        document.querySelector('.score').style.fontSize = '16px';
+        document.querySelector('h1').style.fontSize = '18px';
+
+        const dino = {
+            width: 30,
+            height: 30,
+            x: canvas.width / 2 - 30 / 2,
+            y: canvas.height - 30 - 10,
+            speed: 10
+        };
+
+        const objects = [];
+        let score = 0;
+        let gameOver = false;
+        let level = 1;
+        let objectSpeed = 2;
+
+        // Cargar imágenes desde la carpeta local
+        const dinoImage = document.getElementById('dinoPreload');
+        const obstacleImage = document.getElementById('obstaclePreload');
+
+        let moveLeft = false;
+        let moveRight = false;
+
+        document.getElementById('leftButton').addEventListener('mousedown', () => {
+            moveLeft = true;
+        });
+        document.getElementById('leftButton').addEventListener('mouseup', () => {
+            moveLeft = false;
+        });
+        document.getElementById('rightButton').addEventListener('mousedown', () => {
+            moveRight = true;
+        });
+        document.getElementById('rightButton').addEventListener('mouseup', () => {
+            moveRight = false;
+        });
+
+        document.getElementById('leftButton').addEventListener('touchstart', () => {
+            moveLeft = true;
+        });
+        document.getElementById('leftButton').addEventListener('touchend', () => {
+            moveLeft = false;
+        });
+        document.getElementById('rightButton').addEventListener('touchstart', () => {
+            moveRight = true;
+        });
+        document.getElementById('rightButton').addEventListener('touchend', () => {
+            moveRight = false;
+        });
+
+        const movementSpeed = 5;
+
+        function updateDinoPosition() {
+            if (moveLeft) {
+                dino.x -= movementSpeed;
+                if (dino.x < 0) dino.x = 0;
+            }
+            if (moveRight) {
+                dino.x += movementSpeed;
+                if (dino.x + dino.width > canvas.width) dino.x = canvas.width - dino.width;
+            }
+        }
+
+        // Parámetros del spritesheet para ambos personajes
+        const SPRITE_FRAME_WIDTH = 235 / 9; // Cambia 235 y 9 si tu spritesheet es diferente
+        const SPRITE_FRAME_HEIGHT = 35;     // Cambia 35 si tu frame es más alto
+        const SPRITE_TOTAL_FRAMES = 9;      // Cambia 9 si tienes más/menos frames
+
+        // Dino (Stitch)
+        let spriteFrame = 0;
+        let spriteFrameTick = 0;
+
+        function drawDino() {
+            ctx.drawImage(
+                dinoImage,
+                Math.floor(spriteFrame) * SPRITE_FRAME_WIDTH, 0,
+                SPRITE_FRAME_WIDTH, SPRITE_FRAME_HEIGHT,
+                dino.x, dino.y, dino.width, dino.height
+            );
+            spriteFrameTick++;
+            if (spriteFrameTick % 8 === 0) {
+                spriteFrame = (spriteFrame + 1) % SPRITE_TOTAL_FRAMES;
+            }
+        }
+
+        // Obstáculo (AppleCat)
+        let obstacleFrame = 0;
+        let obstacleFrameTick = 0;
+
+        function drawObjects() {
+            objects.forEach(obj => {
+                ctx.drawImage(
+                    obstacleImage,
+                    Math.floor(obstacleFrame) * SPRITE_FRAME_WIDTH, 0,
+                    SPRITE_FRAME_WIDTH, SPRITE_FRAME_HEIGHT,
+                    obj.x, obj.y, obj.width, obj.height
+                );
+            });
+            obstacleFrameTick++;
+            if (obstacleFrameTick % 8 === 0) {
+                obstacleFrame = (obstacleFrame + 1) % SPRITE_TOTAL_FRAMES;
+            }
+        }
+
+        // --- Ajusta el tamaño de los personajes para que se vean bien ---
+        dino.width = SPRITE_FRAME_WIDTH;
+        dino.height = SPRITE_FRAME_HEIGHT;
+
+        // Los obstáculos siempre serán del tamaño de un frame del spritesheet
+        function updateObjects() {
+            objects.forEach(obj => {
+                obj.y += objectSpeed;
+            });
+
+            while (objects.length > 0 && objects[0].y > canvas.height) {
+                objects.shift();
+                score += 5;
+                document.getElementById('score').textContent = score;
+
+                if (score % 100 === 0) {
+                    level++;
+                    objectSpeed += 1;
+                    if (Math.random() < 0.1) {
+                        const sizeW = SPRITE_FRAME_WIDTH;
+                        const sizeH = SPRITE_FRAME_HEIGHT;
+                        objects.push({  
+                            x: Math.random() * (canvas.width - sizeW),
+                            y: -sizeH,
+                            width: sizeW,
+                            height: sizeH
+                        });
+                    }
+                }
+            }
+
+            if (Math.random() < 0.02) {
+                const sizeW = SPRITE_FRAME_WIDTH;
+                const sizeH = SPRITE_FRAME_HEIGHT;
+                objects.push({
+                    x: Math.random() * (canvas.width - sizeW),
+                    y: -sizeH,
+                    width: sizeW,
+                    height: sizeH
+                });
+            }
+        }
+
+        function checkCollision() {
+            objects.forEach(obj => {
+                if (
+                    dino.x < obj.x + obj.width &&
+                    dino.x + dino.width > obj.x &&
+                    dino.y < obj.y + obj.height &&
+                    dino.y + dino.height > obj.y
+                ) {
+                    gameOver = true;
+                }
+            });
+        }
+
+        // Add a restart button
+        const restartButton = document.createElement('button');
+        restartButton.textContent = 'Volver a Jugar';
+        restartButton.style.display = 'none';
+        restartButton.style.marginTop = '10px';
+        restartButton.style.padding = '10px 20px';
+        restartButton.style.fontSize = '16px';
+        restartButton.style.cursor = 'pointer';
+        document.body.appendChild(restartButton);
+
+        restartButton.addEventListener('click', () => {
+            // Reset game state
+            score = 0;
+            level = 1;
+            objectSpeed = 2;
+            gameOver = false;
+            objects.length = 0; // Clear obstacles
+            document.getElementById('score').textContent = score;
+            restartButton.style.display = 'none';
+            gameLoop();
+        });
+
+        function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = 'black';
+                ctx.font = '20px Arial';
+                ctx.fillText('¡Juego Terminado!', canvas.width / 2 - 80, canvas.height / 2);
+                updateScoreTable(); // Update score table when game ends
+                restartButton.style.display = 'block'; // Show restart button
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            updateDinoPosition();
+            drawDino();
+            drawObjects();
+            updateObjects();
+            checkCollision();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('touchstart', (event) => {
+            const touchX = event.touches[0].clientX;
+            if (touchX < canvas.width / 2) {
+                moveLeft = true;
+            } else {
+                moveRight = true;
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            moveLeft = false;
+            moveRight = false;
+        });
+
+        // Pantalla de selección de nivel antes de iniciar el juego
+        const levelSelect = document.createElement('div');
+        levelSelect.innerHTML = `
+            <div style="text-align: center; margin-bottom: 10px;">
+                <label for="level">Selecciona el nivel:</label>
+                <select id="level">
+                    <option value="easy">Fácil</option>
+                    <option value="medium" selected>Medio</option>
+                    <option value="hard">Difícil</option>
+                </select>
+                <button id="startGame">Iniciar Juego</button>
+            </div>
+        `;
+        document.body.insertBefore(levelSelect, canvas);
+
+        document.getElementById('startGame').addEventListener('click', () => {
+            const selectedLevel = document.getElementById('level').value;
+            if (selectedLevel === 'easy') {
+                objectSpeed = 2;
+            } else if (selectedLevel === 'medium') {
+                objectSpeed = 4;
+            } else if (selectedLevel === 'hard') {
+                objectSpeed = 6;
+            }
+            levelSelect.style.display = 'none';
+            gameLoop();
+        });
+
+        // Tabla de puntuación
+        const scoreTable = document.createElement('div');
+        scoreTable.innerHTML = `
+            <div class="score-table" style="margin-top: 20px; text-align: center;">
+                <table style="border-collapse: collapse; width: 80%; margin: 0 auto;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Intento</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Puntuación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreTableBody"></tbody>
+                </table>
+            </div>
+        `;
+        document.body.appendChild(scoreTable);
+
+        function updateScoreTable() {
+            const scoreTableBody = document.getElementById('scoreTableBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${level}</td><td>${score}</td>`;
+            scoreTableBody.appendChild(row);
+        }
+
+        // Borde animado para el canvas
+        canvas.style.border = '5px solid';
+        canvas.style.borderImageSlice = '1';
+        canvas.style.animation = 'gradientBorder 3s infinite';
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes gradientBorder {
+                0% {
+                    border-image-source: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+                }
+                50% {
+                    border-image-source: linear-gradient(90deg, violet, indigo, blue, green, yellow, orange, red);
+                }
+                100% {
+                    border-image-source: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>
